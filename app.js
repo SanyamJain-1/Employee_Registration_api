@@ -2,13 +2,58 @@ const express = require('express')
 const fs = require('fs')
 const users = require('./MOCK_DATA.json');
 const generateId = require('generate-unique-id')
+const mongoose = require('mongoose');
+const { type } = require('os');
+
+
+//Connecting mongoose
+mongoose.connect('mongodb://127.0.0.1:27017/employees')
+.then(() => {
+    console.log('MongoDB Connected')
+})
+.catch((err) => {
+    console.log('Mongo Connection Error', err);
+})
+
+const userSchema = new mongoose.Schema({
+    first_name: {
+        type: String,
+        required: true,
+    },
+    last_name: {
+        type: String,
+    },
+    id: {
+        type: String,
+        unique: true,
+        required: true
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    Title: {
+        type: String,
+    },
+    ip_address: {
+        type: String,
+        required: true,
+    },
+    gender: {
+        type: String,
+    },
+},{ timestamps: true});
+
+const user = mongoose.model('user',userSchema)
 
 const app = express();
 
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/api/users', (req, res)=> {
-    return res.json(users);
+app.get('/api/users', async (req, res)=> {
+    const allDbUsers = await user.find({});
+    return res.json(allDbUsers);
 })
 app.get('/api/user',(req, res) => {
     let user;
@@ -48,15 +93,29 @@ app.get('/api/user',(req, res) => {
     }
     return res.json(user);    
 })
-app.post('/api/user', (req,res)=>{
+app.post('/api/user', async (req,res)=>{
 
     const newId = generateId({
         length : 10,
         useLetters : true,
         useNumbers : true
     })
+
+    if(
+        !req.body ||
+        !req.body.firstName ||
+        !req.body.lastName ||
+        !req.body.Email ||
+        !req.body.IP_Address ||
+        !req.body.Title ||
+        !req.body.Gender
+    ){
+        return res.status(400).json({
+            msg: "All Fields are required"
+        });
+    }
     
-    users.push({
+    const data = await user.create({
         id : newId,
         first_name : req.body.firstName,
         last_name : req.body.lastName,
@@ -66,15 +125,9 @@ app.post('/api/user', (req,res)=>{
         Title : req.body.Title
     })
 
-    let data = users.find((user) => {
-        if(user.id === newId)
-            return user; 
-    })
-    fs.writeFile('./MOCK_DATA.json', JSON.stringify(users), "utf-8", (error) => {
-        res.end("Error");
-    })
+    console.log('New user created sucessfully');
 
-    return res.status(200).json(data);
+    return res.status(201).json(data);
 })
 
 
@@ -122,5 +175,5 @@ app.delete('/api/user/:id', (req, res)=>{
 
 const PORT = 5000;
 app.listen(PORT, ()=> {
-    console.log("Server Started!")
+    console.log("Server Started! \nAt PORT: ",PORT)
 })
