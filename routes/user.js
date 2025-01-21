@@ -1,4 +1,8 @@
 import express from 'express';
+import generateId from 'generate-unique-id';
+import fs from 'fs';
+import users from '../MOCK_DATA.json' assert {type: 'json'};
+
 const router = express.Router();
 
 router.get('/all', async (req, res)=> {
@@ -126,6 +130,4 @@ router
             return res.status(200).json(data);
         })
 
-module.exports = {
-    router
-};
+module.exports = router;
